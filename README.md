@@ -12,5 +12,5 @@ Back to the project, to understand how the sequence of pitches leads to a strike
 This notebook is reflects a portion of a three part series to undestand how picth sequences affect picther and batter productivity. **In this first portion of the series, I explore and classify pitching sequences that lead to strikeouts in the 2015 to 2018 MLB regular seasons.**
 
 ## Getting familar with the data
-_For explanation of variable names, please see Kaggle dataset or read the informational part of this [post](https://rstudio-pubs-static.s3.amazonaws.com/491386_ba16153bbd1749a6a0698df6a83b88b2.html) by Brandon Lester_\
+_For explanation of variable names, please see the [Kaggle dataset](https://www.kaggle.com/pschale/mlb-pitch-data-20152018) or read the informational part of this [post](https://rstudio-pubs-static.s3.amazonaws.com/491386_ba16153bbd1749a6a0698df6a83b88b2.html) by Brandon Lester_\
 After examining the available data with an internt browser on the Kaggle website, it is clear that the dataset is quite granular, tracks every pitch thrown and labels each one with an "at bat" ID (ab_id). Therefore it makes sense to organize pitches by their ID (which conveniently includes the season).
