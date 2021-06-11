@@ -199,21 +199,9 @@ plt.yscale("log")
 plt.title("Number of Pitches Thrown by Type")
 plt.ylabel("Num. Pitches Thrown")
 plt.show()
-
-## Density plot of pitch speed by pitch type
-### Start Velocity
-plt.figure()
-sns.kdeplot(x=df["start_speed"], hue=df["pitch_type"])
-plt.title("Initial Speed of Pitch")
-plt.xlabel("Initial Speed (mph)")
-plt.show()
-### End Velocity
-plt.figure()
-sns.kdeplot(x=df["end_speed"], hue=df["pitch_type"])
-plt.title("Final Speed of Pitch")
-plt.xlabel("Final Speed (mph)")
-plt.show()
 ```
+
+![number_of_pitches_by_type](figures\number_of_pitches_throw_by_type.png)
 
 Examine what pitches are thrown in different situations. A mosaic plot is great for plotting two catgeorical variables.  Get the `mosaic()` function from the `statsmodels.graphics` module
 
@@ -231,6 +219,8 @@ mosaic(df, ["pitch_type", "outs"],
 plt.ylabel("Outs")
 plt.show()
 ```
+
+
 
 The mosaic plot shows that the four-seam fastball (FF) is dominant pitch but also shows an approximate equal distribution of FF pitches in all three out scenarios. 
 
