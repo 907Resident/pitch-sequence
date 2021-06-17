@@ -5,6 +5,8 @@ Top-line objective: *Using an assortment of pitching information, how well can w
 
 This post is a part of a two-part series in which the MLB Pitch dataset is explored and used to learn ML classification techniques. This is the second part, which portrays the actial ML modeling that was conducted. See [pitch-sequence repo](https://github.com/907Resident/pitch-sequence) for more details.
 
+*You can find the notebook that I used for this portion of the project [here](https://colab.research.google.com/drive/1zNaFo9sh0ohDvzC7z3WUWm58qwuPW_bZ).*
+
 ## Preface
 As an awardee of the [Kaggle BIPOC Program](https://www.kaggle.com/bipoc-grant-application), I had the opportunity to select a project that interested me and work on it directly with an established Machine Learning Engineer. Overall, I enjoyed my experience and would recommend others who satisfy the criteria for the program to apply in the future. I will say that it is tough to get all of what you want completed when you are also trying to finish a dissertation and start a new job. But I believe the following is a good synposis of how one can put ML to work through this program. 
 
@@ -224,9 +226,12 @@ X[:,14] = explanatory_encoder_le.fit_transform(X[:,14].astype(str))
 ```
 
 ## Execute ML Algorithms
-As mentioned earlier, multiple iterations of the ML algorithms were used to gauge the importance of the parameters used in this project. To separate these model runs the following numerical system was employed: IterationNumber.IterationModification.IterationSubModification. The largest changes to the approach are noted by the `IterationNumber`, followed by the `IterationModification`, and the most minor changes indicated by `IterationSubModification`. Not all attempts are presented in those. The attempts not discussed in the post can be found in detail in the notebook. 
+As mentioned earlier, multiple iterations of the ML algorithms were used to gauge the importance of the parameters used in this project. To separate these model runs the following numerical system was employed: IterationNumber.IterationModification.IterationSubModification. The largest changes to the approach are noted by the `IterationNumber`, followed by the `IterationModification`, and the most minor changes indicated by `IterationSubModification`. The set up and the code for some of the attempts are not presented in this post; however, they can be found in detail in the notebook. 
 
-- iteration 1.0.0: H2O only
-- iteration 2.0.0: RF Classifier with max depth at 2 and seed at 42 (`code`) dropped as discussed with Josh
-- iteration 2.1.0: grid search across parameters for RF
-- iteration 2.2.0: One-vs-Many SVM classifier
+- iteration 1.0.0: H<sub>2</sub>O Flow RandomForestEstimator (unlumped target labels)
+- iteration 2.0.0: `sklearn` RF Classifier with max depth at 2 and seed at 42 (`code`) dropped
+- iteration 2.1.0: `sklearn` grid search across parameters for RF
+- iteration 2.2.0: `sklearn` One-vs-Many SVM classifier
+
+### Iteration 2.0.0
+This model run used the the `RandomForestClassifier()` from the [`sklearn`](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestClassifier.html) API. Specifically, the trees were set to a shallow depth of 2. This means that the number of splits for each decision tree will be two. Smaller max depths lead to underfitting, while larger numbers can overfit. The confusion matrix below shows the differences 

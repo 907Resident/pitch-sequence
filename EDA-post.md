@@ -8,6 +8,8 @@ This post is a part of a two-part series in which the MLB Pitch dataset is explo
 ## Preface
 As an awardee of the [Kaggle BIPOC Program](https://www.kaggle.com/bipoc-grant-application), I had the opportunity to select a project that interested me and work on it directly with an established Machine Learning Engineer. Overall, I enjoyed my experience and would recommend others who satisfy the criteria for the program to apply in the future. I will say that it is tough to get all of what you want completed when you are also trying to finish a dissertation and start a new job. But I believe the following is a good synposis of how one can put ML to work through this program. 
 
+*You can find the notebook that I used for this project [here](https://colab.research.google.com/drive/1jTxgwIBL-NzJIIhCp_2li17icHfJ0kdj#scrollTo=8Bna2r5FT73h&uniqifier=1).*
+
 ## Introduction
 About 730k pitches are thrown in Major League Baseball (MLB) every season. Thanks to [Paul Schale](https://www.kaggle.com/pschale), a [dataset](https://www.kaggle.com/pschale/mlb-pitch-data-20152018?select=2019_pitches.csv) of these picthes from the 2015-2019 seasons has been produced for all to access on Kaggle. On Kaggle there have been numerous notebooks made to analyze and model the data. One [user](https://www.kaggle.com/markben/mlb-considering-handedness-for-pitchers-batters) examined how the handedness of a pitcher could affect the outcome of an at-bat (hit or an out). Whereas another another [user](https://www.kaggle.com/pschale/bayesian-inference-for-strike-zone-analysis) used bayesian analysis to uncover a slight (~1 inch) change in the size of the strike zone after an ejection occurs.
 
