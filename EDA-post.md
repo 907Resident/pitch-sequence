@@ -201,7 +201,7 @@ plt.ylabel("Num. Pitches Thrown")
 plt.show()
 ```
 
-![number_of_pitches_by_type](figures\number_of_pitches_throw_by_type.png)
+![number_of_pitches_by_type](figures/number_of_pitches_throw_by_type.png)
 
 Examine what pitches are thrown in different situations. A mosaic plot is great for plotting two catgeorical variables.  Get the `mosaic()` function from the `statsmodels.graphics` module
 
