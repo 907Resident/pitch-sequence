@@ -3,346 +3,230 @@
 ## Classifying Baseball Events
 Top-line objective: *Using an assortment of pitching information, how well can we predict the specific outcome of an at-bat?*
 
-This post is a part of a two-part series in which the MLB Pitch dataset is explored and used to learn ML classification techniques. See [pitch-sequence repo](https://github.com/907Resident/pitch-sequence) for more details.
+This post is a part of a two-part series in which the MLB Pitch dataset is explored and used to learn ML classification techniques. This is the second part, which portrays the actial ML modeling that was conducted. See [pitch-sequence repo](https://github.com/907Resident/pitch-sequence) for more details.
 
 ## Preface
 As an awardee of the [Kaggle BIPOC Program](https://www.kaggle.com/bipoc-grant-application), I had the opportunity to select a project that interested me and work on it directly with an established Machine Learning Engineer. Overall, I enjoyed my experience and would recommend others who satisfy the criteria for the program to apply in the future. I will say that it is tough to get all of what you want completed when you are also trying to finish a dissertation and start a new job. But I believe the following is a good synposis of how one can put ML to work through this program. 
 
 ## Introduction
-About 730k pitches are thrown in Major League Baseball (MLB) every season. Thanks to [Paul Schale](https://www.kaggle.com/pschale), a [dataset](https://www.kaggle.com/pschale/mlb-pitch-data-20152018?select=2019_pitches.csv) of these picthes from the 2015-2019 seasons has been produced for all to access on Kaggle. On Kaggle there have been numerous notebooks made to analyze and model the data. One [user](https://www.kaggle.com/markben/mlb-considering-handedness-for-pitchers-batters) examined how the handedness of a pitcher could affect the outcome of an at-bat (hit or an out). Whereas another another [user](https://www.kaggle.com/pschale/bayesian-inference-for-strike-zone-analysis) used bayesian analysis to uncover a slight (~1 inch) change in the size of the strike zone after an ejection occurs.
+For a brief recap, through this project, the goal for me was to learn more about how to improve multioutput classification models through the analysis of pitches thrown by MLB picthers. Please read [part one](https://github.com/907Resident/pitch-sequence/blob/main/EDA-post.md) for more details.
 
-In this post, we will the diffferent features of this dataset and then proceed to create a multi-label classification model. The model incorporates the data from the pitches thrown during the MLB season and then attempts to predict the outcome of the at-bat. This was an educational exercise, where I sought to learn how to iterate and improve a multi-label classification model through numerous attempts. The absolute predictive power of the model was a secondary objective and is not the focus of this post.
+In this post, we will use the diffferent features of this dataset and then proceed to create a multi-label classification model. The model incorporates the data from the pitches thrown during the MLB season and then attempts to predict the outcome of the at-bat. This was an educational exercise, where I sought to learn how to iterate and improve a multi-label classification model through numerous attempts. The absolute predictive power of the model was a secondary objective and is not the focus of this post.
 
 ## The Data
+This section is a duplication of what was written in the EDA post. However, it has been placed here for the reader's convenince. 
+
 Within the posted dataset, there are three .csv files of importance: 1) pitches.csv, 2) atbats.csv, and 3) player_names.csv (note: in the second version of the dataset, Schale added data from the 2019 season in seperate .csv for the 1 and 2). In the pitches .csv, there are almost four dozen columns of data that range from `px`, the location along the axis of the pitch, to `on_1b` indicating that there is a baserunner on first base. However, the most relevant metrics in the pitching dataset describe the type of pitch thrown (`pitch_type`), number of strikes in the count (`s_count`), and number of balls in the count (`b_count`). Of course, when we proceed to modeling the outcome of the at-bat (`event`) will be the target variable. In the meantime, let's explore the variation among the pertinent metrics and features in the dataset.
 
-## Importing the Data into Python
-In this section, import the data into dataframes, assess missing data, and clean data for exploratory analysis to take place in the next session. 
-### Connect to Google Drive
-For this project, I used [Google Colab](https://colab.research.google.com/) because it allows me to train models on Google's hardware freeing up my personal machine for other uses. Furthermore, it allows the sharing of notebooks with no installing or downloading of external software; the recipient of your notebook need only a browser and internt connection to view and run your code. Of course read through the documentation and [FAQs](https://research.google.com/colaboratory/faq.html) if you have concerns about using this platform for your work. 
+## Preprocess the Data
+More instructions on how to obtain the original dataset are shared in part one. Also, further discussion on how to import the data is shared there as well. We will proceed on the basis that the data has been succuessfully imported into the pyhton workspace as `df_main`.
 
-Link to Google Drive so that zip files procured from Kaggle API sits in Google Drive instead of local machine to save space and for flexibility.  More details on how to set this up can be found on this Medium [post](https://medium.com/analytics-vidhya/how-to-fetch-kaggle-datasets-into-google-colab-ea682569851a) by Mrinali Gupta.
-```
-# Connect to Google Drive
-from google.colab import drive
-drive.mount('/content/gdrive')
-```
-
-### Access data from Kaggle API
-Kaggle has organized an API so that data, competition submissions, and other related materials can be accessed from a command interface. In order to acquire the data for this project, the Kaggle API was utilized. Read more [here](https://github.com/Kaggle/kaggle-api) about the API on GitHub. *Important:* Create an environmental variable for the kaggle config file for Kaggle API get credentials. Follow the post mentioned above for specific instructions on how to access the necessary .json file.
-
-One can also download data manually from the Kaggle website; however, building in this process to your code will allow you to pick up any new versions of the data and keep a better record of where and how the data was accessed as well as its origin.
+Let's start by visualizing the the target label (`event`) through a countplot. 
 
 ```
-import os
-os.environ['KAGGLE_CONFIG_DIR'] = "/content/gdrive/My Drive/Colab Notebooks/pitch-sequence"
-```
+# Target variable: Graph the frequency of outcomes
+sns.set_theme(context="notebook", style="darkgrid", palette="gist_ncar_r")
 
-Point current directory towards the appropriate directory in Google Drive
-```
-%cd /content/gdrive/My Drive/Colab Notebooks/pitch-sequence
-```
-
-Install the Kaggle API into your workspace
-```
-# Install Kaggle API
-!pip install -q --upgrade kaggle
-```
-
-Download the data from the API
-```
-# Download the pitches and at bats data set from 2019
-!kaggle datasets download pschale/mlb-pitch-data-20152018 -f 2019_pitches.csv
-!kaggle datasets download pschale/mlb-pitch-data-20152018 -f 2019_atbats.csv
-!kaggle datasets download pschale/mlb-pitch-data-20152018 -f player_names.csv
-
-# Download the pitches and at bats data set from 2015-2018
-!kaggle datasets download pschale/mlb-pitch-data-20152018 -f pitches.csv
-!kaggle datasets download pschale/mlb-pitch-data-20152018 -f atbats.csv
-```
-
-### Import the data
-
-```
-# Import data science packages
-import pandas as pd
-import numpy as np 
-import seaborn as sns 
-import matplotlib.pyplot as plt
-```
-
-Begin with the pitches
-```
-# Import data from 2019 .csv
-df_pitches_19 = pd.read_csv("/content/gdrive/My Drive/Colab Notebooks/pitch-sequence/2019_pitches.csv.zip")
-# Take a look at the dimensions of the freshly imported dataframe.
-df_pitches_19.shape
-```
-
-At-bats
-```
-# Import data from competition .csv
-df_atbats_19 = pd.read_csv("/content/gdrive/My Drive/Colab Notebooks/pitch-sequence/2019_atbats.csv.zip")
-# Take a look at the dimensions of the freshly imported dataframe.
-df_atbats_19.shape
-```
-
-Names of the players
-```
-df_names = pd.read_csv("/content/gdrive/My Drive/Colab Notebooks/pitch-sequence/player_names.csv")
-# Take a look at the dimensions of the freshly imported dataframe.
-df_names.shape
-```
-
-Join the pitch and at bat data  to get the pitcher ID into the former dataframe. This will allows us to know who is throwing the pitches. Drop all columns from at-bat dataframe (because we mostly interested in the pitching aspect) except pitcher ID, pitcher throws (p_throws), and event.
-```
-# Join the pitches and at bat dataframes
-df_merged = df_pitches_19.merge(df_atbats_19, how="left", on="ab_id")
-
-# Drop unncessary at bat columns
-df_merged.drop(["o", "stand", "batter_id", "g_id", "top"], 
-               inplace = True, axis = 1)
-
-# Preview dataframe
-df_merged.head()
-```
-
-Drop some of the superfluous columns from the pitches dataset. Definitions of the columns can be found [here](https://fastballs.wordpress.com/2007/08/02/glossary-of-the-gameday-pitch-fields/).
-```
-# Drop extraneous picthing columns
-df_merged.drop(["break_angle", "break_length", "break_y", "ax", 
-                "ay", "az", "vx0", "vy0", "vz0", "x", 
-                "x0", "y", "y0", "z0", "pfx_x", "pfx_z", "zone", "type",
-                "event_num", "on_1b", "on_2b", "on_3b"], 
-        inplace = True, axis = 1)
-
-# Preview dataframe
-df_merged.head()
-```
-
-```
-# Get the new shape of the main dataframe
-df_merged.shape
-```
-
-Merge the player names to the the dataframe
-```
-# Merge main df to the player names with pitcher ID
-df = df_merged.merge(df_names, how="left", left_on="pitcher_id", right_on="id")
-
-# Drop "id" column from player names dataframe
-df.drop(["id"],
-        inplace = True, axis = 1)
-
-# Preview main dataframe
-df.head()
-```
-
-Reorder the dataframe so that the pitcher IDs and their names at at far left of the dataframe. Currently, there is not a simply way to move the columns;
-therefore: 
-
-*   move the necessary columns to the left with the `insert()` function with misspelled titles
-*   delete the original column
-*   rename the purposefully misspelled columns to the correct spelling
-```
-# Move pitcher ID to the front
-df.insert(0, "pitche_id", df.pitcher_id)
-
-# Move First Name next to pitcher ID
-df.insert(1, "firs_name", df.first_name)
-
-# Move Last Name next to First Name
-df.insert(2, "las_name", df.last_name)
-
-# Drop Duplicates
-df.drop(labels=["pitcher_id", "first_name", "last_name"], 
-                   axis=1, inplace=True)
-
-# Rename misspled column names
-df.rename(columns = {'pitche_id':'pitcher_id', 
-                     'firs_name':'first_name',
-                     'las_name':'last_name'}, 
-          inplace = True)
-
-# Fill missing data with "NA"
-#df.fillna(value="NA", inplace=True)
-
-# Preview dataframe
-df.head()
-```
-
-## Exploratory Data Analysis
-With a clean dataset of pitches during the 2019 season, it is time to dive in and analyze. 
-
-### Visualize important metrics
-Start by getting a feel of the important metrics in the dataset. Some of these important metrics are:
-
-
-*   `start_speed`
-*   `end_speed`
-*   `event`
-*   `pitch_type`
-*   `b_count`
-*   `s_count`
-*   `last_name`
-
-Best place to start is understanding which is the most common pitch type
-```
-# Set graph style
-sns.set_style("darkgrid")
-
-# Graph pitch types
-## Absolute Number of Pitches
-plt.figure(figsize=(4,4))
-df.pitch_type.value_counts().plot(kind="bar", edgecolor="k")
-plt.yscale("log")
-plt.title("Number of Pitches Thrown by Type")
-plt.ylabel("Num. Pitches Thrown")
-plt.show()
-
-## Density plot of pitch speed by pitch type
-### Start Velocity
-plt.figure()
-sns.kdeplot(x=df["start_speed"], hue=df["pitch_type"])
-plt.title("Initial Speed of Pitch")
-plt.xlabel("Initial Speed (mph)")
-plt.show()
-### End Velocity
-plt.figure()
-sns.kdeplot(x=df["end_speed"], hue=df["pitch_type"])
-plt.title("Final Speed of Pitch")
-plt.xlabel("Final Speed (mph)")
+# Events
+plt.figure(figsize=(20,12))
+sns.countplot(y="event", data=df_main, orient="h")
+plt.xscale("linear")
 plt.show()
 ```
 
-Examine what pitches are thrown in different situations. A mosaic plot is great for plotting two catgeorical variables.  Get the `mosaic()` function from the `statsmodels.graphics` module
+## Mapped data: Lumping similar together
+It is pretty clear that strikeout leads the way followed by ground, single, and walk. However, we can use our baseball knowledge to better make sense of which catrgories are similar. Since some events are relatively low, we will combine them together to increase the likelihood that our model can predict the "lumped" together `event`. 
 
-For instance, when there is 0, 1, or 2 outs, what pitch is thrown?
+Thus, combining the data above and knowledge of baseball, we get the following six outcomes for our target variable
+- Non-HR Hit <- Single, Double, Triple
+- HR < - Home Run
+- Defensive Out <- Groundout, Flyout, Lineout, Pop Out, Forceout, Grounded Into DP, Double Play, Bunt Groundout, Fielders Choice, Fielders Choice Out, Bunt Lineout, Bunt Pop Out, Triple Play
+- Strikeout <- Strikeout, Strikeout Double Play
+- Walk <- Walk, Hit by Pitch, Intent Walk
+- Sacrifice <- Sac Fly, Sac Bunt, Sac Fly Double Play, Sac Bunt Double Play
+- Other <- Field Error, Catcher Interference, Batter Interference, Fan Interference
+
+Sacrifice plays are an interesting subcategory because the rely on the presence and location of baserunners, the score of the game, and the prowress of the batter. Sacrifice events ($n = 5208$) such as:
+- Sac Fly
+- Sac Bunt
+- Sac Fly Double Play
+- Sac Bunt Double Play
+
+will be scruitinzed carefully due to the fact these are not registered statistically as at bats. Furthermore, it will be intriguing to see how `pitch_type`, a charactristic of the pitcher, will relate to this play that is largely guided by factors external to the pitchers decision to throw a a specific pitch.
+
+Similarly, plays that do not require the interaction between the pitcher and the batter are also dropped. For example, the [pickoff play](https://en.wikipedia.org/wiki/Pickoff) involves the pitcher throwing to a fellow defensive player to get an out. This does not require the interaction between the pitcher and the batter. Therefore the following inter-pitch events ($n = 801$) are also dropped: 
+- Caught Stealing 2B
+- Pickoff Caught Stealing 2B
+- Pickoff 1B
+- Caught Stealing Home
+- Caught Stealing 3B
+- Pickoff 2B
+- Pickoff Caught Stealing Home
+- Wild Pitch
+- Pickoff 3B
+- Pickoff Caught Stealing 3B
+- Passed Ball
+- Pickoff Error 1B
+- Stolen Base 2B
+- Runner Double Play
+- Runner Out
+
 ```
-# Mosaic plot for pitch type and outs in the count
-## Import mosaic function
-from statsmodels.graphics.mosaicplot import mosaic
+# Create new dataframe "df_prepped"
+df_prepped = df_main.reset_index(drop=True)
 
-# Create marginal table
-plt.rcParams["figure.figsize"]=(16, 8)
-mosaic(df, ["pitch_type", "outs"],
-       gap = 0.008,
-       title="Pitch Type and Outs")
-plt.ylabel("Outs")
+# List of non-at bat events
+non_at_bat_subs_lst = \
+["Caught Stealing 2B", "Pickoff Caught Stealing 2B", "Pickoff 1B", 
+ "Caught Stealing Home", "Caught Stealing 3B", "Pickoff 2B", 
+ "Pickoff Caught Stealing Home", "Wild Pitch", "Pickoff 3B", 
+ "Pickoff Caught Stealing 3B", "Passed Ball", "Pickoff Error 1B", 
+ "Stolen Base 2B", "Runner Double Play", "Runner Out"]
+
+# Drop non-at bat events
+mask = df_prepped.event.isin(non_at_bat_subs_lst)
+df_prepped.event.iloc[mask] = np.nan
+df_prepped = df_prepped[df_prepped["event"].notna()]
+
+# Preview the loss of rows
+df_prepped.shape
+```
+
+Roughly 901 rows (0.13 %) were dropped when the non-at bat scenarios were removed from the dataset. These seem a little low because Bill James [reports](https://www.billjamesonline.com/legally_stolen_bases/#:~:text=The%202019%20Philadelphia%20Phillies%20allowed%2066%20stolen%20bases%2C,is%20the%20starting%20point%20of%20our%20process%20here.) that the Philadelphia Phillies caught 50 runners stealing bases in 2019. Expanded to all 30 teams that would mean 1500 runners were caught stealing, which almost doubles the amount here. Finding caught stealing stats proves to be difficult.
+
+```
+# Organize the subevents into lists
+## Non-Hit HR
+non_hit_HR_subs_lst = ["Single", "Double", "Triple"]
+## HR
+HR_subs_lst = ["Home Run"]
+## Defensive Out
+defensive_out_subs_lst =\
+ ["Groundout", "Flyout", "Lineout", "Pop Out",  "Forceout", "Grounded Into DP", 
+  "Double Play","Bunt Groundout", "Fielders Choice", "Fielders Choice Out", 
+  "Bunt Lineout", "Bunt Pop Out", "Triple Play"]
+## Strikeout
+strikeout_subs_lst = ["Strikeout", "Strikeout Double Play"]
+## Walk
+walk_subs_lst = ["Walk", "Hit By Pitch", "Intent Walk"]
+## Sacrifice
+sac_subs_lst = ["Sac Fly", "Sac Bunt", 
+                "Sac Fly Double Play", "Sac Bunt Double Play"]
+## Other
+other_subs_lst = ["Field Error", "Catcher Interference", "Batter Interference",
+                  "Fan Interference"]
+# Create empty series for updated events
+event_new = pd.Series(index=range(len(df_main)))
+
+# Map subcategories of event
+relev_events = ["Non-HR Hit", "HR", "Def Out", "Strikeout", "Walk", "Sacrifice",
+                "Other"]
+
+# Use boolean masks to map the data accordingly
+## Non-Hit HR
+mask = df_main.event.isin(non_hit_HR_subs_lst)
+event_new.iloc[mask] = relev_events[0]
+## HR
+mask = df_main.event.isin(HR_subs_lst)
+event_new.iloc[mask] = relev_events[1]
+## Defensive Out
+mask = df_main.event.isin(defensive_out_subs_lst)
+event_new.iloc[mask] = relev_events[2]
+## Strikeout
+mask = df_main.event.isin(strikeout_subs_lst)
+event_new.iloc[mask] = relev_events[3]
+## Walk
+mask = df_main.event.isin(walk_subs_lst)
+event_new.iloc[mask] = relev_events[4]
+## Sacrifice
+mask = df_main.event.isin(sac_subs_lst)
+event_new.iloc[mask] = relev_events[5]
+## Other
+mask = df_main.event.isin(other_subs_lst)
+event_new.iloc[mask] = relev_events[-1]
+
+# Add event_new to dataframe 
+df_prepped.insert(0, "event_new", event_new)
+```
+
+From a previous iteration of the ML model, we know that `code` is an unfair feature to use because it effectively records what happens after the pitch is thrown. Since the objective is predict what pitches and scenarios lead to the various events, `code` is dropped from the dataframe.
+
+```
+# Drop "code"
+df_prepped = df_prepped.drop(axis=1, columns=["code"])
+
+# Also, drop the un-lumped "event", "first_name", "last_name", "pitcher_id", 
+# and "ab_id" columns. "event_new" will be the new target variable and "ab_id"
+# is not useful 
+df_prepped = df_prepped.drop(axis=1, columns=["event", "pitcher_id", "ab_id", 
+                                              "first_name", "last_name"])
+
+# Visualize lumped events
+fig = plt.figure(figsize=(12,8))
+sns.countplot(y="event_new", data=df_prepped, orient="h")
+plt.xscale("linear")
 plt.show()
+fig.savefig("figures/lumped_events_2019.png", dpi=300)                                              
 ```
 
-The mosaic plot shows that the four-seam fastball (FF) is dominant pitch but also shows an approximate equal distribution of FF pitches in all three out scenarios. 
-
-Furthermore, the mosaic plot shows that the slider (SL) and knukle curve (KC) are thrown more often with two outs than with one or zero. Also, the chart also demonstrates that the SL is thrown far more often than the KC based on the width of the bars. Therefore, we now have some information about how the game may affect pitch type,
-
-Using a series of pie plots, we can examine the pitch selected and how it corresponds to the number of strikes and balls in the count. In these pie charts, the pitch type label is given as well as the number of strikes and balls in the count.
+## Feature Engineering
+In this exercise there was not too much in the way of feature engineering. However, one feature that was generated is the difference in the score between the pitcher and batter's respective teams (`score_delta`). 
 
 ```
-ptype_labs = ["FF", "SL", "CH", "CU", "FC", "FT", "SI", "FS", "KC", "FO", "KM",
-              "EP"]
-df_count_ptype = df_bls_strx.groupby(["b_count", "s_count"]).pitch_type.value_counts()
+# Create a feature score_delta that relates the score of the game relative to pitcher
+df_prepped["score_delta"] = df_prepped.p_score - df_prepped.b_score
 
-cmap = "Set3"
-fig, ax = plt.subplots(nrows=4, ncols=3, figsize=(12,8))
-# 0,0 count
-df_count_ptype[:12].plot(kind="pie", autopct='%1.0f%%', cmap=cmap,
-                         ax=ax[0,0])
-ax[0,0].set_ylabel('')
-# 0,1 count
-df_count_ptype[13:24].plot(kind="pie", autopct='%1.0f%%', cmap=cmap,
-                           ax=ax[0,1])
-ax[0,1].set_ylabel('')
-# 0,2 count
-df_count_ptype[25:35].plot(kind="pie", autopct='%1.0f%%', cmap=cmap,
-                           ax=ax[0,2])
-ax[0,2].set_ylabel('')
-# 1,0 count
-df_count_ptype[36:47].plot(kind="pie", autopct='%1.0f%%', cmap=cmap,
-                           ax=ax[1,0])
-ax[1,0].set_ylabel('')
-# 1,1 count
-df_count_ptype[49:59].plot(kind="pie", autopct='%1.0f%%', cmap=cmap,
-                           ax=ax[1,1])
-ax[1,1].set_ylabel('')
-# 1,2 count
-df_count_ptype[61:70].plot(kind="pie", autopct='%1.0f%%', cmap=cmap,
-                           ax=ax[1,2])
-ax[1,2].set_ylabel('')
-# 2,0 count
-df_count_ptype[71:82].plot(kind="pie", autopct='%1.0f%%', cmap=cmap,
-                           ax=ax[2,0])
-ax[2,0].set_ylabel('')
-# 2,1 count
-df_count_ptype[82:94].plot(kind="pie", autopct='%1.0f%%', cmap=cmap,
-                           ax=ax[2,1])
-ax[2,1].set_ylabel('')
-# 2,2 count
-df_count_ptype[94:103].plot(kind="pie", autopct='%1.0f%%', cmap=cmap,
-                            ax=ax[2,2])
-ax[2,2].set_ylabel('')
-# 3,0 count
-df_count_ptype[103:114].plot(kind="pie", autopct='%1.0f%%', cmap=cmap,
-                             ax=ax[3,0])
-ax[3,0].set_ylabel('')
-# 3,1 count
-df_count_ptype[114:125].plot(kind="pie", autopct='%1.0f%%', cmap=cmap,
-                             ax=ax[3,1])
-ax[3,1].set_ylabel('')
-# 3,2 count
-df_count_ptype[125:134].plot(kind="pie", autopct='%1.0f%%', cmap=cmap,
-                             ax=ax[3,2])
-ax[3,2].set_ylabel('')
-
-f = plt.gcf()
-f.set_size_inches(12,14)
-plt.tight_layout()
-plt.show()
-```
-### Two-strike counts
-In situations where there are two strikes in the count, the diversity of pitches expands relative to earlier in the count.
-```
-df_k_2S = df[(df["s_count"] == 2)]
-df_k_2S.drop_duplicates(subset=["ab_id"], keep="last", inplace=True)
-df_k_2S.reset_index(inplace=True, drop=True)
-
-df_k_2S_cnt = df_k_2S.pitch_type.value_counts()
-df_k_2S_cnt.plot(kind="pie", autopct='%1.0f%%', cmap=cmap)
-plt.ylabel('')
-plt.show()
-```
-This pie chart shows the probability of pitch type selected when the result is a strikeout and there are two strikes in the count. To be clear, this is the pitch that was selected that resulted in the strikeout. 
-```
-(df_k_2S["event"]== "Strikeout").mean()
-```
-This quick calculation shows that about half of the time the data shows that pitcher is able to strikeout the batter when there are two strikes in the count.
-
-We can explore this further by analyzing the `event` or outcome from each of the 2-strike at-bats. 
-```
-df_k_2S["is_SO"] = (df_k_2S["event"]== "Strikeout")
-df_k_2S.groupby(["pitch_type"])["is_SO"].mean().sort_values(ascending=False)
+# Export to csv
+df_prepped.to_csv("df_prepped.csv", sep=",", index=False)
 ```
 
-This simple analysis demonstrates the probability depending on pitch type selection for 2-strike counts that end in a strikeout. Though all of the pitch types represented are not thrown in equal amounts (see EDA), the knucklecurve (KC) results in a strikeout almost 60% of the time its is thrown in a 2-strike count scenario. More common pitches, such as the slider (SL), curveball (CU), four-seam fastball (FF), change up (CH), and splitter (FS) result in strikeouts in the same count situation between 51 and 55% of the time. Surprisingly, sinkers (SI) only result in strikeouts 43% of the time suggesting that batters take (do not swing) at that pitch.
+## Encode categorical variables
+There are several categorical variables in this dataset including the target variable, "event." For the ML algorithms to prcesss them appropriately, they need to be encoded as numeric values. Further guidance on incorporating categorical variables into ML models was gleaned from [Frank and Hall (2001)](https://www.cs.waikato.ac.nz/~eibe/pubs/ordinal_tech_report.pdf) and [Chen et al.](https://statistics.berkeley.edu/sites/default/files/tech-reports/666.pdf).
+
+### Target Variable: `event_new`
+To use `sklearn` we will need to apply an encoder to ensure that the target is recorded as numerical information instead of text
+
+The `sklearn` [`label_encoder()`](https://sklearn.org/modules/generated/sklearn.preprocessing.LabelEncoder.html#:~:text=sklearn.preprocessing%20.LabelEncoder%20%C2%B6%20%20%20fit%20%28y%29%20,of%20this%20estimator.%20%201%20more%20rows%20) works well for this purpose. 
+
 ```
-# Crosstab analysis
-df_ptype_xtab_event = \
-pd.crosstab(df_k_2S["pitch_type"], df_k_2S["event"],
-            normalize="index").\
-drop(columns=["Batter Interference", "Catcher Interference", 
-              "Caught Stealing 2B", "Caught Stealing Home", 
-              "Pickoff Caught Stealing Home", "Runner Out",
-              "Sac Fly Double Play"])
-## Ensure column names are unattached to "event"
-df_ptype_xtab_event.columns = df_ptype_xtab_event.columns.to_list()
+from sklearn.preprocessing import LabelEncoder
+# Instantiate the encoder
+target_encoder_le = LabelEncoder()
 
-# Simple heatmap
-sns.heatmap(df_ptype_xtab_event, cmap="rainbow", linewidths=0.5, linecolor="w",
-            annot=True)
+# Fit and transform the encoder to the target variable
+## Separate target variable from explanatory features
+y = df_prepped.iloc[:,0].values
+## Apply encoder
+y = target_encoder_le.fit_transform(y.astype(str))
 ```
 
-This heatmap highlights the terminal scenarios that occur after the pitch is thrown in the two strike count. It is relatively clear, as mentioned earlier, that the result ends in a strike out about half the time for all pitches. The only exception is the knuckleball (KN), which appears to have only been thrown a few times (possibly only once) and it hit a batter. Again, the curveball (CU) and slider (SL) are the pitches that lead to a strikeout in this 2-strike count the most often.
+### Features: All variables that are not the target
 
-The clustermap examines how the pitch type and event types are related to one another. The clustermap clearly sets apart the knuckleball (KN) from the rest of the pitches. Also the pitchout (FO) is also seperated from the rest of the pitches (relevant pitches) as well. It appears, from the event side of things, grounding out, getting a single or a walk are all loosely related to the most relevant pitch types. Grounding out is slighly seperate from getting a single or a walk.
+Just like the target variable, the categorical variables from the explanatory data (i.e. features) will need to transformed with encoding.
 
-As the heatmap indicated, there is not a huge difference between the relevant pitches in terms of strikeout probability if you allow for a 5% difference between piches. However, the clustermap reveals that there is a correlative relationship between sinkers (SI) and cutters (FC) as well as curveballs (CU) and splitters (FS). 
+```
+# Instantiate the encoder
+explanatory_encoder_le = LabelEncoder()
+
+# Fit and transform the encoder to the explanatory variable
+## Separate explanatory variables from the target variable
+X = data_subsample.iloc[:, 1:].values
+
+## Apply encoder
+### pitch_type
+X[:,6] = explanatory_encoder_le.fit_transform(X[:,6].astype(str))
+### b_count
+X[:,8] = explanatory_encoder_le.fit_transform(X[:,8].astype(str))
+### s_count
+X[:,9] = explanatory_encoder_le.fit_transform(X[:,9].astype(str))
+### p_throws
+X[:,14] = explanatory_encoder_le.fit_transform(X[:,14].astype(str))
+```
+
+## Execute ML Algorithms
+As mentioned earlier, multiple iterations of the ML algorithms were used to gauge the importance of the parameters used in this project. To separate these model runs the following numerical system was employed: IterationNumber.IterationModification.IterationSubModification. The largest changes to the approach are noted by the `IterationNumber`, followed by the `IterationModification`, and the most minor changes indicated by `IterationSubModification`. Not all attempts are presented in those. The attempts not discussed in the post can be found in detail in the notebook. 
+
+- iteration 1.0.0: H2O only
+- iteration 2.0.0: RF Classifier with max depth at 2 and seed at 42 (`code`) dropped as discussed with Josh
+- iteration 2.1.0: grid search across parameters for RF
+- iteration 2.2.0: One-vs-Many SVM classifier
